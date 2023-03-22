@@ -1,7 +1,5 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-
 import multer from "multer";
 import user from "../models/user.js";
 import UserModal from "../models/user.js";
@@ -25,17 +23,6 @@ export const deleteUser = async (req, res) => {
 
      await UserModal.findByIdAndDelete(req.params.id);    
     res.status(200).json("user deleted");
-} catch (error) {
-
-    res.status(404).json({ message: error.message });
-}
-}
-
-export const updateUserById = async (req, res) => {
-  try {   
-
-     await UserModal.findByIdAndUpdate(req.params.id,req.body)    
-    res.status(200).json("user changed");
 } catch (error) {
 
     res.status(404).json({ message: error.message });
@@ -98,7 +85,7 @@ export const signin = async (req, res) => {
 };
 
 export const signup = async (req, res) => {
-  const { email, password, firstname, lastname, role ,profilePic} = req.body;
+  const { email, password, firstName, lastName, role } = req.body;
 
   try {
     const oldUser = await UserModal.findOne({ email });
@@ -113,20 +100,19 @@ export const signup = async (req, res) => {
       role,
       
       password: hashedPassword,
-      firstname: `${firstname}`,
-      lastname: `${lastname}`,
-      profilePic: `${profilePic}`,
+      firstname: `${firstName}`,
+      lastname: `${lastName}`,
+  
     });
 
-    
-    const token = jwt.sign({ email: result.email, id: result._id },secret, {
+    const token = jwt.sign({ email: result.email, id: result._id }, secret, {
       expiresIn: "1h",
     });
 
     res.status(201).json({ result, token });
     console.log("esss")
   } catch (error) {
-    res.status(500).json({ message: "sucess" });
+    res.status(500).json({ message: "success" });
 
     console.log(error);
   }
@@ -134,6 +120,32 @@ export const signup = async (req, res) => {
 /*
 export const forgetPass = async (req, res) => {
 */
+// image upload start here
+const multerConfig = multer.diskStorage({
+  destination: (req, file, callback) => {
+    callback(null, "./public/images/users");
+  },
+  filename: async (req, file, callback) => {
+    // const ext= file.mimetype.split('/')[1];
+    console.log(req);
+    const user = await UserModal.findById(req.body.username)
+    user.hasImage=true
+    user.save()
+    callback(null, `${req.body.username}.jpg`);
+  },
+});
+const uploadd = multer({
+  storage: multerConfig,
+});
+export const uploadImage = uploadd.single("photo");
+
+export const upload = (req, res) => {
+  res.status(200).json({
+    succes: "success",
+  });
+};
+
+// image upload ends here
 
 
 export const addUserr = async (req, res) => {
@@ -144,7 +156,7 @@ export const addUserr = async (req, res) => {
         email: req.body.email,
         role: req.body.role,
         password: req.body.password,
-        profilePic :`${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
+        profilePic: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`
   })
 
       await ite.save()
@@ -163,6 +175,7 @@ export const getByIdUserrrr = async (req, res) => {
  
     res.status(404).json({ message: error.message });
 }}
+
 export const updateUserrById = async (req, res) => {
   try {
     let foundUser = await UserModal.findOne({ _id: req.params.id });
@@ -190,23 +203,25 @@ export const updateUserrById = async (req, res) => {
         $set: {
           ...updateImages,
           email: req.body.email ? req.body.email : foundUser.email,
-         // profilePic: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
+          profilePic: `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`,
           firstname: req.body.firstname ? req.body.firstname : foundUser.firstname,
           lastname: req.body.lastname ? req.body.lastname : foundUser.lastname,
-          password: req.body.password ? req.body.password : foundUser.password,
-          //role: req.body.role ? req.body.role : foundUser.role,
+          role: req.body.role ? req.body.role : foundUser.role,
         
         },
       },
       { new: true, upsert: true },
     );
 
-    res.status(200).send(
-      updatedUser
-    );
+    res.status(200).json({
+      success: true,
+      message: "Mise à jour réussie de l'utilisateur",
+      updatedUser: updatedUser,
+    });
   } catch (error) {
     res.status(500).json({
-      message: "ghalta",
+      success: false,
+      message: error.message,
     });
   }
 };
